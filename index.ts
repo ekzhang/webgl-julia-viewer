@@ -1,9 +1,26 @@
+import * as dat from "dat.gui";
+
 import fShaderSource from "./shaders/fShader.glsl";
 import vShaderSource from "./shaders/vShader.glsl";
 
-const canvas = document.querySelector("#glCanvas") as HTMLCanvasElement;
+const getParams = (query) => {
+  // Source: https://stackoverflow.com/a/3855394/2514396
+  if (!query) {
+    return {};
+  }
+  return (/^[?#]/.test(query) ? query.slice(1) : query)
+    .split("&")
+    .reduce((pparams, param) => {
+      const [key, value] = param.split("=");
+      pparams[key] = value ? JSON.parse(decodeURIComponent(value.replace(/\+/g, " "))) : null;
+      return pparams;
+    }, {});
+};
+
+const params = getParams(window.location.search);
 
 // Automatic canvas resizing
+const canvas = document.querySelector("#glCanvas") as HTMLCanvasElement;
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -47,30 +64,48 @@ const zoomCenterLoc = gl.getUniformLocation(program, "u_zoomCenter");
 const zoomSizeLoc = gl.getUniformLocation(program, "u_zoomSize");
 const juliaConstantLoc = gl.getUniformLocation(program, "u_juliaConstant");
 
+const defaultSettings = {
+  loc: [-0.76, 0.22],
+  zoomCenter: [0, 0],
+  zoomSize: 4.0,
+};
+
+let settings = params.settings || Object.assign({}, defaultSettings);
 let mouseLoc;
 let mouseDown = false;
-let loc = [-0.76, 0.22];
-let zoomSize = 4.0;
-let zoomCenter = [0, 0];
+
+// dat.gui menu setup
+const menu = {
+  "Reset View": () => {
+    settings = Object.assign({}, defaultSettings);
+  },
+  "Share Link": () => {
+    prompt("", window.location.href.split("?")[0] + "?settings=" + JSON.stringify(settings));
+  },
+};
+const gui = new dat.GUI();
+for (const action of Object.keys(menu)) {
+  gui.add(menu, action);
+}
 
 function coordsToPoint(x: number, y: number) {
   x = x / canvas.width - 0.5;
   y = (canvas.height - 1 - y) / canvas.height - 0.5;
   y *= canvas.height / canvas.width;
-  x = x * zoomSize + zoomCenter[0];
-  y = y * zoomSize + zoomCenter[1];
+  x = x * settings.zoomSize + settings.zoomCenter[0];
+  y = y * settings.zoomSize + settings.zoomCenter[1];
   return [x, y];
 }
 
 canvas.addEventListener("mousedown", (e) => {
   mouseDown = true;
-  loc = mouseLoc = coordsToPoint(e.clientX, e.clientY);
+  settings.loc = mouseLoc = coordsToPoint(e.clientX, e.clientY);
 });
 
 canvas.addEventListener("mousemove", (e) => {
   mouseLoc = coordsToPoint(e.clientX, e.clientY);
   if (mouseDown) {
-    loc = mouseLoc;
+    settings.loc = mouseLoc;
   }
 });
 
@@ -80,9 +115,9 @@ canvas.addEventListener("mouseup", (e) => {
 
 canvas.addEventListener("wheel", (e) => {
   const scale = Math.pow(2, -e.deltaY / 2000);
-  zoomSize *= scale;
-  zoomCenter = [scale * (zoomCenter[0] - mouseLoc[0]) + mouseLoc[0],
-    scale * (zoomCenter[1] - mouseLoc[1]) + mouseLoc[1]];
+  settings.zoomSize *= scale;
+  settings.zoomCenter = [scale * (settings.zoomCenter[0] - mouseLoc[0]) + mouseLoc[0],
+    scale * (settings.zoomCenter[1] - mouseLoc[1]) + mouseLoc[1]];
 });
 
 function renderFrame() {
@@ -92,9 +127,9 @@ function renderFrame() {
   // Set uniforms
   gl.uniform1i(maxIterationLoc, 512);
   gl.uniform2fv(resolutionLoc, [canvas.width, canvas.height]);
-  gl.uniform2fv(zoomCenterLoc, zoomCenter);
-  gl.uniform1f(zoomSizeLoc, zoomSize);
-  gl.uniform2fv(juliaConstantLoc, loc);
+  gl.uniform2fv(zoomCenterLoc, settings.zoomCenter);
+  gl.uniform1f(zoomSizeLoc, settings.zoomSize);
+  gl.uniform2fv(juliaConstantLoc, settings.loc);
 
   // Draw
   // gl.clearColor(0.0, 0.0, 0.0, 1.0);
