@@ -63,6 +63,8 @@ const resolutionLoc = gl.getUniformLocation(program, "u_resolution");
 const zoomCenterLoc = gl.getUniformLocation(program, "u_zoomCenter");
 const zoomSizeLoc = gl.getUniformLocation(program, "u_zoomSize");
 const juliaConstantLoc = gl.getUniformLocation(program, "u_juliaConstant");
+const paletteXLoc = gl.getUniformLocation(program, "u_paletteX");
+const paletteCLoc = gl.getUniformLocation(program, "u_paletteC");
 
 const defaultSettings = {
   loc: [-0.76, 0.22],
@@ -131,6 +133,15 @@ function renderFrame() {
   gl.uniform2fv(zoomCenterLoc, settings.zoomCenter);
   gl.uniform1f(zoomSizeLoc, settings.zoomSize);
   gl.uniform2fv(juliaConstantLoc, settings.loc);
+  gl.uniform1fv(paletteXLoc, [0.0, 0.16, 0.42, 0.6425, 0.8575, 1.0]);
+  gl.uniform3fv(paletteCLoc, [
+    0.0, 7.0, 100.0,
+    32.0, 107.0, 203.0,
+    237.0, 255.0, 255.0,
+    255.0, 170.0, 0.0,
+    0.0, 2.0, 0.0,
+    0.0, 7.0, 100.,
+  ]);
 
   // Draw
   // gl.clearColor(0.0, 0.0, 0.0, 1.0);

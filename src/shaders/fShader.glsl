@@ -29,27 +29,15 @@ vec2 f(vec2 z, vec2 c) {
 	return sq(z) + c;
 }
 
-vec3 palette(float x) {
-  float CONTROL_X[6];
-  CONTROL_X[0] = 0.0;
-  CONTROL_X[1] = 0.16;
-  CONTROL_X[2] = 0.42;
-  CONTROL_X[3] = 0.6425;
-  CONTROL_X[4] = 0.8575;
-  CONTROL_X[5] = 1.0;
-  vec3 CONTROL_C[6];
-  CONTROL_C[0] = vec3(0.0, 7.0, 100.0);
-  CONTROL_C[1] = vec3(32.0, 107.0, 203.0);
-  CONTROL_C[2] = vec3(237.0, 255.0, 255.0);
-  CONTROL_C[3] = vec3(255.0, 170.0, 0.0);
-  CONTROL_C[4] = vec3(0.0, 2.0, 0.0);
-  CONTROL_C[5] = vec3(0.0, 7.0, 100.0);
+uniform float u_paletteX[6];
+uniform vec3 u_paletteC[6];
 
+vec3 palette(float x) {
   for (int i = 0; i < 5; i++) {
-    if (CONTROL_X[i + 1] >= x) {
-      float k = (x - CONTROL_X[i]) / (CONTROL_X[i + 1] - CONTROL_X[i]);
-      vec3 c1 = CONTROL_C[i];
-      vec3 c2 = CONTROL_C[i + 1];
+    if (u_paletteX[i + 1] >= x) {
+      float k = (x - u_paletteX[i]) / (u_paletteX[i + 1] - u_paletteX[i]);
+      vec3 c1 = u_paletteC[i];
+      vec3 c2 = u_paletteC[i + 1];
       return ((1.0 - k) * c1 + k * c2) / 256.0;
     }
   }
