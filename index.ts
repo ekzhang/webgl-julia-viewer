@@ -47,9 +47,11 @@ const zoomCenterLoc = gl.getUniformLocation(program, "u_zoomCenter");
 const zoomSizeLoc = gl.getUniformLocation(program, "u_zoomSize");
 const juliaConstantLoc = gl.getUniformLocation(program, "u_juliaConstant");
 
+let mouseLoc;
+let mouseDown = false;
 let loc = [-0.76, 0.22];
-const zoomSize = 4.0;
-const zoomCenter = [0, 0];
+let zoomSize = 4.0;
+let zoomCenter = [0, 0];
 
 function coordsToPoint(x: number, y: number) {
   x = x / canvas.width - 0.5;
@@ -60,21 +62,27 @@ function coordsToPoint(x: number, y: number) {
   return [x, y];
 }
 
-let mouseDown = false;
-
 canvas.addEventListener("mousedown", (e) => {
   mouseDown = true;
-  loc = coordsToPoint(e.clientX, e.clientY);
+  loc = mouseLoc = coordsToPoint(e.clientX, e.clientY);
 });
 
 canvas.addEventListener("mousemove", (e) => {
+  mouseLoc = coordsToPoint(e.clientX, e.clientY);
   if (mouseDown) {
-    loc = coordsToPoint(e.clientX, e.clientY);
+    loc = mouseLoc;
   }
 });
 
 canvas.addEventListener("mouseup", (e) => {
   mouseDown = false;
+});
+
+canvas.addEventListener("wheel", (e) => {
+  const scale = Math.pow(2, -e.deltaY / 2000);
+  zoomSize *= scale;
+  zoomCenter = [scale * (zoomCenter[0] - mouseLoc[0]) + mouseLoc[0],
+    scale * (zoomCenter[1] - mouseLoc[1]) + mouseLoc[1]];
 });
 
 function renderFrame() {
