@@ -17,6 +17,16 @@ const params: any = ((query) => {
     }, {});
 })(window.location.search);
 
+function download(name, dataUrl) {
+  const element = document.createElement("a");
+  element.setAttribute("href", dataUrl);
+  element.setAttribute("download", name);
+  element.style.display = "none";
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+}
+
 class JuliaRenderer {
   public antiAliasing: boolean;
   public maxIterations: number;
@@ -26,6 +36,7 @@ class JuliaRenderer {
   private zoomSize: number;
   private mouseLoc: number[];
   private mouseDown: boolean;
+  private capture: boolean;
 
   private readonly gl: WebGLRenderingContext;
   private readonly program: WebGLProgram;
@@ -48,6 +59,7 @@ class JuliaRenderer {
     this.zoomSize = params.zoomSize || 4.0;
     this.mouseLoc = [0, 0];
     this.mouseDown = false;
+    this.capture = false;
     this.addEventListeners();
 
     this.gl = this.canvas.getContext("webgl") as WebGLRenderingContext;
@@ -71,6 +83,10 @@ class JuliaRenderer {
   public resetView() {
     this.zoomCenter = [0, 0];
     this.zoomSize = 4.0;
+  }
+
+  public screenshot() {
+    this.capture = true;
   }
 
   public shareLink() {
@@ -164,6 +180,11 @@ class JuliaRenderer {
     // Draw
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
+    if (this.capture) {
+      download("julia.png", this.canvas.toDataURL("image/png"));
+      this.capture = false;
+    }
+
     requestAnimationFrame(this.renderFrame.bind(this));
   }
 }
@@ -185,4 +206,5 @@ const gui = new dat.GUI();
 gui.add(julia, "antiAliasing");
 gui.add(julia, "maxIterations", 256, 768);
 gui.add(julia, "resetView");
+gui.add(julia, "screenshot");
 gui.add(julia, "shareLink");
