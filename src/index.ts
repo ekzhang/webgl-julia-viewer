@@ -3,7 +3,7 @@ import * as dat from "dat.gui";
 import fShaderSource from "./shaders/fShader.glsl";
 import vShaderSource from "./shaders/vShader.glsl";
 
-const getParams = (query) => {
+const params: any = ((query) => {
   // Source: https://stackoverflow.com/a/3855394/2514396
   if (!query) {
     return {};
@@ -15,144 +15,174 @@ const getParams = (query) => {
       pparams[key] = value ? JSON.parse(decodeURIComponent(value.replace(/\+/g, " "))) : null;
       return pparams;
     }, {});
-};
+})(window.location.search);
 
-const params = getParams(window.location.search);
+class JuliaRenderer {
+  public antiAliasing: boolean;
+  public maxIterations: number;
+
+  private loc: number[];
+  private zoomCenter: number[];
+  private zoomSize: number;
+  private mouseLoc: number[];
+  private mouseDown: boolean;
+
+  private readonly gl: WebGLRenderingContext;
+  private readonly program: WebGLProgram;
+
+  private readonly maxIterationLoc: WebGLUniformLocation;
+  private readonly resolutionLoc: WebGLUniformLocation;
+  private readonly zoomCenterLoc: WebGLUniformLocation;
+  private readonly zoomSizeLoc: WebGLUniformLocation;
+  private readonly juliaConstantLoc: WebGLUniformLocation;
+  private readonly paletteXLoc: WebGLUniformLocation;
+  private readonly paletteCLoc: WebGLUniformLocation;
+  private readonly antiAliasingLoc: WebGLUniformLocation;
+
+  constructor(private readonly canvas: HTMLCanvasElement) {
+    this.antiAliasing = true;
+    this.maxIterations = 512;
+
+    this.loc = params.loc || [-0.76, 0.22];
+    this.zoomCenter = params.zoomCenter || [0, 0];
+    this.zoomSize = params.zoomSize || 4.0;
+    this.mouseLoc = [0, 0];
+    this.mouseDown = false;
+    this.addEventListeners();
+
+    this.gl = this.canvas.getContext("webgl") as WebGLRenderingContext;
+    if (this.gl === null) {
+      alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+    }
+    this.program = this.gl.createProgram() as WebGLProgram;
+    this.setup();
+    this.maxIterationLoc = this.gl.getUniformLocation(this.program, "u_maxIterations") as WebGLUniformLocation;
+    this.resolutionLoc = this.gl.getUniformLocation(this.program, "u_resolution") as WebGLUniformLocation;
+    this.zoomCenterLoc = this.gl.getUniformLocation(this.program, "u_zoomCenter") as WebGLUniformLocation;
+    this.zoomSizeLoc = this.gl.getUniformLocation(this.program, "u_zoomSize") as WebGLUniformLocation;
+    this.juliaConstantLoc = this.gl.getUniformLocation(this.program, "u_juliaConstant") as WebGLUniformLocation;
+    this.paletteXLoc = this.gl.getUniformLocation(this.program, "u_paletteX") as WebGLUniformLocation;
+    this.paletteCLoc = this.gl.getUniformLocation(this.program, "u_paletteC") as WebGLUniformLocation;
+    this.antiAliasingLoc = this.gl.getUniformLocation(this.program, "u_antiAliasing") as WebGLUniformLocation;
+
+    this.renderFrame();
+  }
+
+  public resetView() {
+    this.zoomCenter = [0, 0];
+    this.zoomSize = 4.0;
+  }
+
+  public shareLink() {
+    const baseUrl = window.location.href.split("?")[0];
+    const locStr = JSON.stringify(this.loc);
+    const centerStr = JSON.stringify(this.zoomCenter);
+    const sizeStr = JSON.stringify(this.zoomSize);
+    prompt("", baseUrl + `?loc=${locStr}&zoomCenter=${centerStr}&zoomSize=${sizeStr}`);
+  }
+
+  private coordsToPoint(x: number, y: number) {
+    x = x / this.canvas.width - 0.5;
+    y = (this.canvas.height - 1 - y) / this.canvas.height - 0.5;
+    y *= this.canvas.height / this.canvas.width;
+    x = x * this.zoomSize + this.zoomCenter[0];
+    y = y * this.zoomSize + this.zoomCenter[1];
+    return [x, y];
+  }
+
+  private addEventListeners() {
+    this.canvas.addEventListener("mousedown", (e) => {
+      this.mouseDown = true;
+      this.loc = this.mouseLoc = this.coordsToPoint(e.clientX, e.clientY);
+    });
+
+    this.canvas.addEventListener("mousemove", (e) => {
+      this.mouseLoc = this.coordsToPoint(e.clientX, e.clientY);
+      if (this.mouseDown) {
+        this.loc = this.mouseLoc;
+      }
+    });
+
+    this.canvas.addEventListener("mouseup", (e) => {
+      this.mouseDown = false;
+    });
+
+    this.canvas.addEventListener("wheel", (e) => {
+      const scale = Math.pow(2, -e.deltaY / 2000);
+      this.zoomSize *= scale;
+      this.zoomCenter[0] = scale * (this.zoomCenter[0] - this.mouseLoc[0]) + this.mouseLoc[0];
+      this.zoomCenter[1] = scale * (this.zoomCenter[1] - this.mouseLoc[1]) + this.mouseLoc[1];
+    });
+  }
+
+  private setup() {
+    // Compile and link shaders
+    const vShader = this.gl.createShader(this.gl.VERTEX_SHADER);
+    const fShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
+    this.gl.shaderSource(vShader, vShaderSource);
+    this.gl.shaderSource(fShader, fShaderSource);
+    this.gl.compileShader(vShader);
+    this.gl.compileShader(fShader);
+    this.gl.attachShader(this.program, vShader);
+    this.gl.attachShader(this.program, fShader);
+    this.gl.linkProgram(this.program);
+    this.gl.useProgram(this.program);
+
+    // Set positions
+    const buffer = this.gl.createBuffer();
+    const vertices = [-1, 1, -1, -1, 1, 1,
+      1, 1, -1, -1, 1, -1];
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertices), this.gl.STATIC_DRAW);
+
+    const positionLocation = this.gl.getAttribLocation(this.program, "a_position");
+    this.gl.enableVertexAttribArray(positionLocation);
+    this.gl.vertexAttribPointer(positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+  }
+
+  private renderFrame() {
+    // Allow resizing
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+
+    // Set uniforms
+    this.gl.uniform1i(this.antiAliasingLoc, this.antiAliasing ? 1 : 0);
+    this.gl.uniform1i(this.maxIterationLoc, this.maxIterations);
+    this.gl.uniform2fv(this.resolutionLoc, [this.canvas.width, this.canvas.height]);
+    this.gl.uniform2fv(this.zoomCenterLoc, this.zoomCenter);
+    this.gl.uniform1f(this.zoomSizeLoc, this.zoomSize);
+    this.gl.uniform2fv(this.juliaConstantLoc, this.loc);
+    this.gl.uniform1fv(this.paletteXLoc, [0.0, 0.16, 0.42, 0.6425, 0.8575, 1.0]);
+    this.gl.uniform3fv(this.paletteCLoc, [
+      0.0, 7.0, 100.0,
+      32.0, 107.0, 203.0,
+      237.0, 255.0, 255.0,
+      255.0, 170.0, 0.0,
+      0.0, 2.0, 0.0,
+      0.0, 7.0, 100.,
+    ]);
+
+    // Draw
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+
+    requestAnimationFrame(this.renderFrame.bind(this));
+  }
+}
 
 // Automatic canvas resizing
-const canvas = document.querySelector("#glCanvas") as HTMLCanvasElement;
+const glCanvas = document.querySelector("#glCanvas") as HTMLCanvasElement;
 function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  glCanvas.width = window.innerWidth;
+  glCanvas.height = window.innerHeight;
 }
 resize();
 window.addEventListener("resize", resize);
 
-const gl = canvas.getContext("webgl") as WebGLRenderingContext;
+// Main
+const julia = new JuliaRenderer(glCanvas);
 
-if (gl === null) {
-  alert("Unable to initialize WebGL. Your browser or machine may not support it.");
-}
-
-// Compile and link shaders
-const vShader = gl.createShader(gl.VERTEX_SHADER);
-const fShader = gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(vShader, vShaderSource);
-gl.shaderSource(fShader, fShaderSource);
-gl.compileShader(vShader);
-gl.compileShader(fShader);
-const program = gl.createProgram();
-gl.attachShader(program, vShader);
-gl.attachShader(program, fShader);
-gl.linkProgram(program);
-gl.useProgram(program);
-
-// Set positions
-const buffer = gl.createBuffer();
-const vertices = [-1, 1, -1, -1, 1, 1,
-                  1, 1, -1, -1, 1, -1];
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-const positionLocation = gl.getAttribLocation(program, "a_position");
-gl.enableVertexAttribArray(positionLocation);
-gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-const maxIterationLoc = gl.getUniformLocation(program, "u_maxIterations");
-const resolutionLoc = gl.getUniformLocation(program, "u_resolution");
-const zoomCenterLoc = gl.getUniformLocation(program, "u_zoomCenter");
-const zoomSizeLoc = gl.getUniformLocation(program, "u_zoomSize");
-const juliaConstantLoc = gl.getUniformLocation(program, "u_juliaConstant");
-const paletteXLoc = gl.getUniformLocation(program, "u_paletteX");
-const paletteCLoc = gl.getUniformLocation(program, "u_paletteC");
-const antiAliasingLoc = gl.getUniformLocation(program, "u_antiAliasing");
-
-const defaultSettings = {
-  loc: [-0.76, 0.22],
-  zoomCenter: [0, 0],
-  zoomSize: 4.0,
-};
-
-let settings = params.settings || Object.assign({}, defaultSettings);
-let mouseLoc;
-let mouseDown = false;
-
-// dat.gui menu setup
-const menu = {
-  antiAliasing: true,
-  maxIterations: 512,
-  resetView: () => {
-    settings = Object.assign({}, defaultSettings);
-  },
-  shareLink: () => {
-    prompt("", window.location.href.split("?")[0] + "?settings=" + JSON.stringify(settings));
-  },
-};
+// Dat.GUI setup
 const gui = new dat.GUI();
-gui.add(menu, "antiAliasing");
-gui.add(menu, "maxIterations", 256, 768);
-gui.add(menu, "resetView");
-gui.add(menu, "shareLink");
-
-function coordsToPoint(x: number, y: number) {
-  x = x / canvas.width - 0.5;
-  y = (canvas.height - 1 - y) / canvas.height - 0.5;
-  y *= canvas.height / canvas.width;
-  x = x * settings.zoomSize + settings.zoomCenter[0];
-  y = y * settings.zoomSize + settings.zoomCenter[1];
-  return [x, y];
-}
-
-canvas.addEventListener("mousedown", (e) => {
-  mouseDown = true;
-  settings.loc = mouseLoc = coordsToPoint(e.clientX, e.clientY);
-});
-
-canvas.addEventListener("mousemove", (e) => {
-  mouseLoc = coordsToPoint(e.clientX, e.clientY);
-  if (mouseDown) {
-    settings.loc = mouseLoc;
-  }
-});
-
-canvas.addEventListener("mouseup", (e) => {
-  mouseDown = false;
-});
-
-canvas.addEventListener("wheel", (e) => {
-  const scale = Math.pow(2, -e.deltaY / 2000);
-  settings.zoomSize *= scale;
-  settings.zoomCenter = [scale * (settings.zoomCenter[0] - mouseLoc[0]) + mouseLoc[0],
-    scale * (settings.zoomCenter[1] - mouseLoc[1]) + mouseLoc[1]];
-});
-
-function renderFrame() {
-  // Allow resizing
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-  // Set uniforms
-  gl.uniform1i(antiAliasingLoc, menu.antiAliasing ? 1 : 0);
-  gl.uniform1i(maxIterationLoc, menu.maxIterations);
-  gl.uniform2fv(resolutionLoc, [canvas.width, canvas.height]);
-  gl.uniform2fv(zoomCenterLoc, settings.zoomCenter);
-  gl.uniform1f(zoomSizeLoc, settings.zoomSize);
-  gl.uniform2fv(juliaConstantLoc, settings.loc);
-  gl.uniform1fv(paletteXLoc, [0.0, 0.16, 0.42, 0.6425, 0.8575, 1.0]);
-  gl.uniform3fv(paletteCLoc, [
-    0.0, 7.0, 100.0,
-    32.0, 107.0, 203.0,
-    237.0, 255.0, 255.0,
-    255.0, 170.0, 0.0,
-    0.0, 2.0, 0.0,
-    0.0, 7.0, 100.,
-  ]);
-
-  // Draw
-  // gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  // gl.clear(gl.COLOR_BUFFER_BIT);
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  requestAnimationFrame(renderFrame);
-}
-
-renderFrame();
+gui.add(julia, "antiAliasing");
+gui.add(julia, "maxIterations", 256, 768);
+gui.add(julia, "resetView");
+gui.add(julia, "shareLink");
