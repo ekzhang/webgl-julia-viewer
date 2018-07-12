@@ -1,8 +1,8 @@
 const path = require('path');
 
-module.exports = {
+module.exports = (env, argv) => ({
   entry: './index.ts',
-  devtool: 'inline-source-map',
+  devtool: argv.mode === 'development' ? 'inline-source-map' : '',
   module: {
     rules: [
       {
@@ -22,8 +22,5 @@ module.exports = {
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist')
-  },
-  performance: {
-    hints: false
   }
-};
+});
