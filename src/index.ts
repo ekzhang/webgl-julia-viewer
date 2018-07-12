@@ -17,9 +17,17 @@ const params: any = ((query) => {
     }, {});
 })(window.location.search);
 
-function download(name, dataUrl) {
+function downloadPNG(name, dataURI) {
+  const byteString = atob(dataURI.split(",")[1]);
+  const array: number[] = [];
+  for (let i = 0; i < byteString.length; i++) {
+    array.push(byteString.charCodeAt(i));
+  }
+  const blob = new Blob([new Uint8Array(array)], { type: "image/png" });
+  const blobUrl = URL.createObjectURL(blob);
+
   const element = document.createElement("a");
-  element.setAttribute("href", dataUrl);
+  element.setAttribute("href", blobUrl);
   element.setAttribute("download", name);
   element.style.display = "none";
   document.body.appendChild(element);
@@ -181,7 +189,7 @@ class JuliaRenderer {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     if (this.capture) {
-      download("julia.png", this.canvas.toDataURL("image/png"));
+      downloadPNG("julia.png", this.canvas.toDataURL("image/png"));
       this.capture = false;
     }
 
@@ -207,4 +215,3 @@ gui.add(julia, "antiAliasing");
 gui.add(julia, "maxIterations", 256, 768);
 gui.add(julia, "resetView");
 gui.add(julia, "screenshot");
-gui.add(julia, "shareLink");
