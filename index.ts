@@ -76,17 +76,18 @@ let mouseDown = false;
 
 // dat.gui menu setup
 const menu = {
-  "Reset View": () => {
+  maxIterations: 512,
+  resetView: () => {
     settings = Object.assign({}, defaultSettings);
   },
-  "Share Link": () => {
+  shareLink: () => {
     prompt("", window.location.href.split("?")[0] + "?settings=" + JSON.stringify(settings));
   },
 };
 const gui = new dat.GUI();
-for (const action of Object.keys(menu)) {
-  gui.add(menu, action);
-}
+gui.add(menu, "maxIterations", 256, 768);
+gui.add(menu, "resetView");
+gui.add(menu, "shareLink");
 
 function coordsToPoint(x: number, y: number) {
   x = x / canvas.width - 0.5;
@@ -125,7 +126,7 @@ function renderFrame() {
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
   // Set uniforms
-  gl.uniform1i(maxIterationLoc, 512);
+  gl.uniform1i(maxIterationLoc, menu.maxIterations);
   gl.uniform2fv(resolutionLoc, [canvas.width, canvas.height]);
   gl.uniform2fv(zoomCenterLoc, settings.zoomCenter);
   gl.uniform1f(zoomSizeLoc, settings.zoomSize);
