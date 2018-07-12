@@ -65,6 +65,7 @@ const zoomSizeLoc = gl.getUniformLocation(program, "u_zoomSize");
 const juliaConstantLoc = gl.getUniformLocation(program, "u_juliaConstant");
 const paletteXLoc = gl.getUniformLocation(program, "u_paletteX");
 const paletteCLoc = gl.getUniformLocation(program, "u_paletteC");
+const antiAliasingLoc = gl.getUniformLocation(program, "u_antiAliasing");
 
 const defaultSettings = {
   loc: [-0.76, 0.22],
@@ -78,6 +79,7 @@ let mouseDown = false;
 
 // dat.gui menu setup
 const menu = {
+  antiAliasing: true,
   maxIterations: 512,
   resetView: () => {
     settings = Object.assign({}, defaultSettings);
@@ -87,6 +89,7 @@ const menu = {
   },
 };
 const gui = new dat.GUI();
+gui.add(menu, "antiAliasing");
 gui.add(menu, "maxIterations", 256, 768);
 gui.add(menu, "resetView");
 gui.add(menu, "shareLink");
@@ -128,6 +131,7 @@ function renderFrame() {
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
   // Set uniforms
+  gl.uniform1i(antiAliasingLoc, menu.antiAliasing ? 1 : 0);
   gl.uniform1i(maxIterationLoc, menu.maxIterations);
   gl.uniform2fv(resolutionLoc, [canvas.width, canvas.height]);
   gl.uniform2fv(zoomCenterLoc, settings.zoomCenter);
