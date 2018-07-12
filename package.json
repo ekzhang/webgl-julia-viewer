@@ -5,29 +5,25 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "http-server -c-1",
+    "start": "webpack-serve webpack.config.js",
     "build": "webpack --config webpack.config.js --mode=production",
-    "build-watch": "webpack --config webpack.config.js --mode=development --watch",
-    "dev": "npm-run-all --parallel build-watch start",
     "postinstall": "npm run build"
   },
   "keywords": [],
   "author": "ekzhang",
   "private": true,
   "license": "ISC",
-  "dependencies": {
-    "http-server": "^0.11.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/dat.gui": "^0.7.1",
     "@types/webgl2": "0.0.4",
     "dat.gui": "^0.7.2",
-    "npm-run-all": "^4.1.3",
     "raw-loader": "^0.5.1",
     "ts-loader": "^4.4.2",
     "tslint": "^5.10.0",
     "typescript": "^2.9.2",
     "webpack": "^4.16.0",
-    "webpack-cli": "^3.0.8"
+    "webpack-command": "^0.4.1",
+    "webpack-serve": "^2.0.2"
   }
 }

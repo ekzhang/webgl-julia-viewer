@@ -1,8 +1,9 @@
 const path = require('path');
 
-module.exports = (env, argv) => ({
-  entry: './index.ts',
-  devtool: argv.mode === 'development' ? 'inline-source-map' : '',
+module.exports = (argv) => ({
+  mode: 'development',
+  entry: './src/index.ts',
+  devtool: argv.mode === 'production' ? '' : 'inline-source-map',
   module: {
     rules: [
       {
@@ -19,8 +20,11 @@ module.exports = (env, argv) => ({
   resolve: {
     extensions: ['.tsx', '.ts', '.js']
   },
+  serve: {
+    content: path.resolve(__dirname, 'docs')
+  },
   output: {
     filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist')
+    path: path.resolve(__dirname, 'docs')
   }
 });
