@@ -215,3 +215,4 @@ gui.add(julia, "antiAliasing");
 gui.add(julia, "maxIterations", 256, 768);
 gui.add(julia, "resetView");
 gui.add(julia, "screenshot");
+gui.add(julia, "shareLink");
