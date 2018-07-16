@@ -75,6 +75,7 @@ export default class JuliaRenderer {
 
   public screenshot(): Promise<string> {
     return new Promise((resolve, reject) => {
+      this.update();
       this.capture = resolve;
     });
   }
