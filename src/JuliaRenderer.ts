@@ -10,6 +10,7 @@ interface IJuliaRendererParams {
 export default class JuliaRenderer {
   public antiAliasing: boolean;
   public maxIterations: number;
+  public scaling: number;
 
   private loc: number[];
   private zoomCenter: number[];
@@ -22,6 +23,7 @@ export default class JuliaRenderer {
   private readonly program: WebGLProgram;
 
   private readonly maxIterationLoc: WebGLUniformLocation | null;
+  private readonly scalingLoc: WebGLUniformLocation | null;
   private readonly resolutionLoc: WebGLUniformLocation | null;
   private readonly zoomCenterLoc: WebGLUniformLocation | null;
   private readonly zoomSizeLoc: WebGLUniformLocation | null;
@@ -33,6 +35,7 @@ export default class JuliaRenderer {
   constructor(private readonly canvas: HTMLCanvasElement, params: IJuliaRendererParams) {
     this.antiAliasing = true;
     this.maxIterations = 512;
+    this.scaling = 10.0;
 
     this.loc = params.loc || [-0.76, 0.22];
     this.zoomCenter = params.zoomCenter || [0, 0];
@@ -49,6 +52,7 @@ export default class JuliaRenderer {
     this.program = this.gl.createProgram() as WebGLProgram;
     this.setup();
     this.maxIterationLoc = this.gl.getUniformLocation(this.program, "u_maxIterations");
+    this.scalingLoc = this.gl.getUniformLocation(this.program, "u_scaling");
     this.resolutionLoc = this.gl.getUniformLocation(this.program, "u_resolution");
     this.zoomCenterLoc = this.gl.getUniformLocation(this.program, "u_zoomCenter");
     this.zoomSizeLoc = this.gl.getUniformLocation(this.program, "u_zoomSize");
@@ -145,6 +149,7 @@ export default class JuliaRenderer {
     // Set uniforms
     this.gl.uniform1i(this.antiAliasingLoc, this.antiAliasing ? 1 : 0);
     this.gl.uniform1i(this.maxIterationLoc, this.maxIterations);
+    this.gl.uniform1f(this.scalingLoc, this.scaling);
     this.gl.uniform2fv(this.resolutionLoc, [this.canvas.width, this.canvas.height]);
     this.gl.uniform2fv(this.zoomCenterLoc, this.zoomCenter);
     this.gl.uniform1f(this.zoomSizeLoc, this.zoomSize);

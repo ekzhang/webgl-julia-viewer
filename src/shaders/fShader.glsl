@@ -1,6 +1,6 @@
-/* Modified from: https://gpfault.net/posts/mandelbrot-webgl.txt.html */
+/* Heavily modified from: https://gpfault.net/posts/mandelbrot-webgl.txt.html */
 
-/* Fragment shader that renders Mandelbrot set */
+/* Fragment shader that renders Julia sets */
 precision highp float;
 
 /* Width and height of screen in pixels */
@@ -17,6 +17,9 @@ uniform float u_zoomSize;
 
 /* How many iterations to do before deciding that a point is in the set. */
 uniform int u_maxIterations;
+
+/* Scaling ratio for palette. */
+uniform float u_scaling;
 
 /* Constant c for the Julia set quadratic polynomial. */
 uniform vec2 u_juliaConstant;
@@ -63,7 +66,7 @@ float computeAtOffset(vec2 offset) {
 }
 
 vec3 palette(float x) {
-  x = fract(x * 10.0);
+  x = fract(x * u_scaling);
   for (int i = 0; i < 5; i++) {
     if (u_paletteX[i + 1] >= x) {
       float k = (x - u_paletteX[i]) / (u_paletteX[i + 1] - u_paletteX[i]);
