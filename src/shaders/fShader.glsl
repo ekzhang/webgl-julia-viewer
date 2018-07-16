@@ -24,8 +24,8 @@ uniform float u_scaling;
 /* Constant c for the Julia set quadratic polynomial. */
 uniform vec2 u_juliaConstant;
 
-/* Whether or not to anti-alias using 2x2 supersampling. */
-uniform bool u_antiAliasing;
+/* Level of anti-aliasing using supersampling. */
+uniform int u_antiAliasing;
 
 vec2 sq(vec2 z) {
   return vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
@@ -49,7 +49,7 @@ vec2 coordsToPoint(vec2 xy) {
 float compute(vec2 z) {
   vec2 c = u_juliaConstant;
   float smoothColor = 0.0;
-  for (int i = 0; i < 10000; i++) {
+  for (int i = 0; i < 1200; i++) {
     if (i >= u_maxIterations) break;
     float norm = length(z);
     smoothColor += exp(-norm);
@@ -81,15 +81,46 @@ vec3 palette(float x) {
 
 void main() {
   vec3 color;
-  if (u_antiAliasing) {
-    float c1 = computeAtOffset(vec2(-0.25, -0.25));
-    float c2 = computeAtOffset(vec2(-0.25, +0.25));
-    float c3 = computeAtOffset(vec2(+0.25, -0.25));
-    float c4 = computeAtOffset(vec2(+0.25, +0.25));
-    color = (palette(c1) + palette(c2) + palette(c3) + palette(c4)) / 4.0;
-  }
-  else {
+  if (u_antiAliasing == 1) {
     color = palette(computeAtOffset(vec2(0.0)));
+  }
+  else if (u_antiAliasing == 2) {
+    color += palette(computeAtOffset(vec2(-0.25, -0.25)));
+    color += palette(computeAtOffset(vec2(-0.25, +0.25)));
+    color += palette(computeAtOffset(vec2(+0.25, -0.25)));
+    color += palette(computeAtOffset(vec2(+0.25, +0.25)));
+    color /= 4.0;
+  }
+  else if (u_antiAliasing == 3) {
+    color += palette(computeAtOffset(vec2(-0.33, -0.33)));
+    color += palette(computeAtOffset(vec2(-0.33, +0.00)));
+    color += palette(computeAtOffset(vec2(-0.33, +0.33)));
+    color += palette(computeAtOffset(vec2(+0.00, -0.33)));
+    color += palette(computeAtOffset(vec2(+0.00, +0.00)));
+    color += palette(computeAtOffset(vec2(+0.00, +0.33)));
+    color += palette(computeAtOffset(vec2(+0.33, -0.33)));
+    color += palette(computeAtOffset(vec2(+0.33, +0.00)));
+    color += palette(computeAtOffset(vec2(+0.33, +0.33)));
+    color /= 9.0;
+  }
+  else if (u_antiAliasing == 4) {
+    color += palette(computeAtOffset(vec2(-0.375, -0.375)));
+    color += palette(computeAtOffset(vec2(-0.375, -0.125)));
+    color += palette(computeAtOffset(vec2(-0.375, +0.125)));
+    color += palette(computeAtOffset(vec2(-0.375, +0.375)));
+    color += palette(computeAtOffset(vec2(-0.125, -0.375)));
+    color += palette(computeAtOffset(vec2(-0.125, -0.125)));
+    color += palette(computeAtOffset(vec2(-0.125, +0.125)));
+    color += palette(computeAtOffset(vec2(-0.125, +0.375)));
+    color += palette(computeAtOffset(vec2(+0.125, -0.375)));
+    color += palette(computeAtOffset(vec2(+0.125, -0.125)));
+    color += palette(computeAtOffset(vec2(+0.125, +0.125)));
+    color += palette(computeAtOffset(vec2(+0.125, +0.375)));
+    color += palette(computeAtOffset(vec2(+0.375, -0.375)));
+    color += palette(computeAtOffset(vec2(+0.375, -0.125)));
+    color += palette(computeAtOffset(vec2(+0.375, +0.125)));
+    color += palette(computeAtOffset(vec2(+0.375, +0.375)));
+    color /= 16.0;
   }
   gl_FragColor = vec4(color, 1.0);
 }

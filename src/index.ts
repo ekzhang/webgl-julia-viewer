@@ -60,8 +60,9 @@ const controls = {
 };
 
 const gui = new dat.GUI();
-gui.add(julia, "antiAliasing").name("Anti-Aliasing");
-gui.add(julia, "maxIterations", 256, 768).name("Max. Iterations");
+gui.add(julia, "antiAliasing",
+  { "None": 1, "2x2 Supersampling": 2, "3x3 Supersampling": 3, "4x4 Supersampling": 4 }).name("Anti-Aliasing");
+gui.add(julia, "maxIterations").min(0).max(1024).step(1).name("Max Iterations");
 gui.add(julia, "scaling").min(0).max(20).step(0.1).name("Color Scaling");
 gui.add(julia, "resetView").name("Reset View");
 gui.add(controls, "screenshot").name("Screenshot");

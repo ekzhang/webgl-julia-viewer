@@ -10,7 +10,7 @@ interface IJuliaRendererParams {
 }
 
 export default class JuliaRenderer {
-  public antiAliasing: boolean;
+  public antiAliasing: number;
   public maxIterations: number;
   public scaling: number;
 
@@ -35,7 +35,7 @@ export default class JuliaRenderer {
   private readonly antiAliasingLoc: WebGLUniformLocation | null;
 
   constructor(private readonly canvas: HTMLCanvasElement, params: IJuliaRendererParams) {
-    this.antiAliasing = true;
+    this.antiAliasing = 2;
     this.maxIterations = 512;
     this.scaling = 10.0;
 
@@ -150,7 +150,7 @@ export default class JuliaRenderer {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
     // Set uniforms
-    this.gl.uniform1i(this.antiAliasingLoc, this.antiAliasing ? 1 : 0);
+    this.gl.uniform1i(this.antiAliasingLoc, this.antiAliasing);
     this.gl.uniform1i(this.maxIterationLoc, this.maxIterations);
     this.gl.uniform1f(this.scalingLoc, this.scaling);
     this.gl.uniform2fv(this.resolutionLoc, [this.canvas.width, this.canvas.height]);
