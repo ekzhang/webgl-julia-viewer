@@ -2,15 +2,6 @@ import * as dat from "dat.gui";
 
 import JuliaRenderer from "./JuliaRenderer";
 
-// Automatic canvas resizing
-const glCanvas = document.querySelector("#glCanvas") as HTMLCanvasElement;
-function resize() {
-  glCanvas.width = window.innerWidth;
-  glCanvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resize);
-resize();
-
 // Query-string parameters
 const params: any = ((query) => {
   if (!query) {
@@ -45,6 +36,7 @@ function downloadPNG(name, dataURI) {
 }
 
 // Main
+const glCanvas = document.querySelector("#glCanvas") as HTMLCanvasElement;
 const julia = new JuliaRenderer(glCanvas, params);
 
 // Dat.GUI setup
@@ -60,10 +52,20 @@ const controls = {
 };
 
 const gui = new dat.GUI();
-gui.add(julia, "antiAliasing",
-  { "None": 1, "2x2 Supersampling": 2, "3x3 Supersampling": 3, "4x4 Supersampling": 4 }).name("Anti-Aliasing");
-gui.add(julia, "maxIterations").min(0).max(1024).step(1).name("Max Iterations");
-gui.add(julia, "scaling").min(0).max(20).step(0.1).name("Color Scaling");
-gui.add(julia, "resetView").name("Reset View");
+const update = julia.update.bind(julia);
+gui.add(julia, "antiAliasing", { "None": 1, "2x2 Supersampling": 2, "3x3 Supersampling": 3, "4x4 Supersampling": 4 })
+  .name("Anti-Aliasing").onChange(update);
+gui.add(julia, "maxIterations").min(0).max(1024).step(1).name("Max Iterations").onChange(update);
+gui.add(julia, "scaling").min(0).max(20).step(0.1).name("Color Scaling").onChange(update);
+gui.add(julia, "resetView").name("Reset View").onChange(update);
 gui.add(controls, "screenshot").name("Screenshot");
 gui.add(controls, "shareLink").name("Share Link");
+
+// Automatic canvas resizing
+function resize() {
+  glCanvas.width = window.innerWidth;
+  glCanvas.height = window.innerHeight;
+  update();
+}
+window.addEventListener("resize", resize);
+resize();

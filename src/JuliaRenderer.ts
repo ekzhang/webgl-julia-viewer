@@ -20,6 +20,7 @@ export default class JuliaRenderer {
   private mouseLoc: number[];
   private mouseDown: boolean;
   private capture: ((dataURI: string) => any) | null;
+  private redraw: boolean;
 
   private readonly gl: WebGLRenderingContext;
   private readonly program: WebGLProgram;
@@ -45,6 +46,7 @@ export default class JuliaRenderer {
     this.mouseLoc = [0, 0];
     this.mouseDown = false;
     this.capture = null;
+    this.redraw = true;
     this.addEventListeners();
 
     this.gl = this.canvas.getContext("webgl") as WebGLRenderingContext;
@@ -85,6 +87,10 @@ export default class JuliaRenderer {
     return baseUrl + `?loc=${locStr}&zoomCenter=${centerStr}&zoomSize=${sizeStr}`;
   }
 
+  public update() {
+    this.redraw = true;
+  }
+
   private coordsToPoint(x: number, y: number) {
     x = x / this.canvas.width - 0.5;
     y = (this.canvas.height - 1 - y) / this.canvas.height - 0.5;
@@ -98,12 +104,14 @@ export default class JuliaRenderer {
     this.canvas.addEventListener("mousedown", (e) => {
       this.mouseDown = true;
       this.loc = this.mouseLoc = this.coordsToPoint(e.clientX, e.clientY);
+      this.update();
     });
 
     this.canvas.addEventListener("mousemove", (e) => {
       this.mouseLoc = this.coordsToPoint(e.clientX, e.clientY);
       if (this.mouseDown) {
         this.loc = this.mouseLoc;
+        this.update();
       }
     });
 
@@ -114,9 +122,12 @@ export default class JuliaRenderer {
     this.canvas.addEventListener("wheel", (e) => {
       let scale = Math.pow(2, -e.deltaY / 2000);
       scale = Math.max(scale, MIN_ZOOM_SIZE / this.zoomSize);
-      this.zoomSize *= scale;
-      this.zoomCenter[0] = scale * (this.zoomCenter[0] - this.mouseLoc[0]) + this.mouseLoc[0];
-      this.zoomCenter[1] = scale * (this.zoomCenter[1] - this.mouseLoc[1]) + this.mouseLoc[1];
+      if (scale !== 1) {
+        this.zoomSize *= scale;
+        this.zoomCenter[0] = scale * (this.zoomCenter[0] - this.mouseLoc[0]) + this.mouseLoc[0];
+        this.zoomCenter[1] = scale * (this.zoomCenter[1] - this.mouseLoc[1]) + this.mouseLoc[1];
+        this.update();
+      }
     });
   }
 
@@ -146,29 +157,33 @@ export default class JuliaRenderer {
   }
 
   private renderFrame() {
-    // Allow resizing
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    if (this.redraw) {
+      this.redraw = false;
 
-    // Set uniforms
-    this.gl.uniform1i(this.antiAliasingLoc, this.antiAliasing);
-    this.gl.uniform1i(this.maxIterationLoc, this.maxIterations);
-    this.gl.uniform1f(this.scalingLoc, this.scaling);
-    this.gl.uniform2fv(this.resolutionLoc, [this.canvas.width, this.canvas.height]);
-    this.gl.uniform2fv(this.zoomCenterLoc, this.zoomCenter);
-    this.gl.uniform1f(this.zoomSizeLoc, this.zoomSize);
-    this.gl.uniform2fv(this.juliaConstantLoc, this.loc);
-    this.gl.uniform1fv(this.paletteXLoc, [0.0, 0.16, 0.42, 0.6425, 0.8575, 1.0]);
-    this.gl.uniform3fv(this.paletteCLoc, [
-      0.0, 7.0, 100.0,
-      32.0, 107.0, 203.0,
-      237.0, 255.0, 255.0,
-      255.0, 170.0, 0.0,
-      0.0, 2.0, 0.0,
-      0.0, 7.0, 100.,
-    ]);
+      // Allow resizing
+      this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
-    // Draw
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+      // Set uniforms
+      this.gl.uniform1i(this.antiAliasingLoc, this.antiAliasing);
+      this.gl.uniform1i(this.maxIterationLoc, this.maxIterations);
+      this.gl.uniform1f(this.scalingLoc, this.scaling);
+      this.gl.uniform2fv(this.resolutionLoc, [this.canvas.width, this.canvas.height]);
+      this.gl.uniform2fv(this.zoomCenterLoc, this.zoomCenter);
+      this.gl.uniform1f(this.zoomSizeLoc, this.zoomSize);
+      this.gl.uniform2fv(this.juliaConstantLoc, this.loc);
+      this.gl.uniform1fv(this.paletteXLoc, [0.0, 0.16, 0.42, 0.6425, 0.8575, 1.0]);
+      this.gl.uniform3fv(this.paletteCLoc, [
+        0.0, 7.0, 100.0,
+        32.0, 107.0, 203.0,
+        237.0, 255.0, 255.0,
+        255.0, 170.0, 0.0,
+        0.0, 2.0, 0.0,
+        0.0, 7.0, 100.,
+      ]);
+
+      // Draw
+      this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+    }
 
     if (this.capture) {
       this.capture(this.canvas.toDataURL("image/png"));
