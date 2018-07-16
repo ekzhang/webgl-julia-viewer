@@ -60,8 +60,8 @@ const controls = {
 };
 
 const gui = new dat.GUI();
-gui.add(julia, "antiAliasing");
-gui.add(julia, "maxIterations", 256, 768);
-gui.add(julia, "resetView");
-gui.add(controls, "screenshot");
-gui.add(controls, "shareLink");
+gui.add(julia, "antiAliasing").name("Anti-Aliasing");
+gui.add(julia, "maxIterations", 256, 768).name("Max. Iterations");
+gui.add(julia, "resetView").name("Reset View");
+gui.add(controls, "screenshot").name("Screenshot");
+gui.add(controls, "shareLink").name("Share Link");
