@@ -1,6 +1,8 @@
 import fShaderSource from "./shaders/fShader.glsl";
 import vShaderSource from "./shaders/vShader.glsl";
 
+const MIN_ZOOM_SIZE = 2e-4;
+
 interface IJuliaRendererParams {
   loc?: number[];
   zoomCenter?: number[];
@@ -110,7 +112,8 @@ export default class JuliaRenderer {
     });
 
     this.canvas.addEventListener("wheel", (e) => {
-      const scale = Math.pow(2, -e.deltaY / 2000);
+      let scale = Math.pow(2, -e.deltaY / 2000);
+      scale = Math.max(scale, MIN_ZOOM_SIZE / this.zoomSize);
       this.zoomSize *= scale;
       this.zoomCenter[0] = scale * (this.zoomCenter[0] - this.mouseLoc[0]) + this.mouseLoc[0];
       this.zoomCenter[1] = scale * (this.zoomCenter[1] - this.mouseLoc[1]) + this.mouseLoc[1];
