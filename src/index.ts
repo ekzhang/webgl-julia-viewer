@@ -55,8 +55,8 @@ const gui = new dat.GUI();
 const update = julia.update.bind(julia);
 gui.add(julia, "antiAliasing", { "None": 1, "2x2 Supersampling": 2, "3x3 Supersampling": 3, "4x4 Supersampling": 4 })
   .name("Anti-Aliasing").onChange(update);
-gui.add(julia, "maxIterations").min(0).max(1024).step(1).name("Max Iterations").onChange(update);
-gui.add(julia, "scaling").min(0).max(20).step(0.1).name("Color Scaling").onChange(update);
+gui.add(julia, "maxIterations").min(0).max(1024).step(8).name("Max Iterations").onChange(update);
+gui.add(julia, "scaling").min(0).max(0.05).step(0.001).name("Color Scaling").onChange(update);
 gui.add(julia, "resetView").name("Reset View").onChange(update);
 gui.add(controls, "screenshot").name("Screenshot");
 gui.add(controls, "shareLink").name("Share Link");

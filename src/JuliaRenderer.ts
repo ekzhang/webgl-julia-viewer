@@ -38,7 +38,7 @@ export default class JuliaRenderer {
   constructor(private readonly canvas: HTMLCanvasElement, params: IJuliaRendererParams) {
     this.antiAliasing = 2;
     this.maxIterations = 512;
-    this.scaling = 10.0;
+    this.scaling = 0.02;
 
     this.loc = params.loc || [-0.76, 0.22];
     this.zoomCenter = params.zoomCenter || [0, 0];

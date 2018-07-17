@@ -57,7 +57,6 @@ float compute(vec2 z) {
       break;
     z = f(z, c);
   }
-  smoothColor /= float(u_maxIterations);
   return smoothColor;
 }
 
