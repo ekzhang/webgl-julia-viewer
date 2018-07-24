@@ -121,6 +121,7 @@ export default class JuliaRenderer {
     });
 
     this.canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
       let scale = Math.pow(2, -e.deltaY / 2000);
       scale = Math.max(scale, MIN_ZOOM_SIZE / this.zoomSize);
       if (scale !== 1) {
