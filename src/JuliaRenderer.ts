@@ -75,6 +75,9 @@ export default class JuliaRenderer {
 
   public screenshot(): Promise<string> {
     return new Promise((resolve, reject) => {
+      if (this.capture) {
+        return reject("Multiple screenshots cannot concurrently be taken");
+      }
       this.update();
       this.capture = resolve;
     });
@@ -180,7 +183,7 @@ export default class JuliaRenderer {
         237.0, 255.0, 255.0,
         255.0, 170.0, 0.0,
         0.0, 2.0, 0.0,
-        0.0, 7.0, 100.,
+        0.0, 7.0, 100.0,
       ]);
 
       // Draw
