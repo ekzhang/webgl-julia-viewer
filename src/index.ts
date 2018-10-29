@@ -57,7 +57,7 @@ gui.add(julia, "antiAliasing", { "None": 1, "2x2 Supersampling": 2, "3x3 Supersa
   .name("Anti-Aliasing").onChange(update);
 gui.add(julia, "maxIterations").min(0).max(1024).step(8).name("Max Iterations").onChange(update);
 gui.add(julia, "scaling").min(0).max(0.05).step(0.001).name("Color Scaling").onChange(update);
-gui.add(julia, "resetView").name("Reset View").onChange(update);
+gui.add(julia, "resetView").name("Reset Zoom").onChange(update);
 gui.add(controls, "screenshot").name("Screenshot");
 gui.add(controls, "shareLink").name("Share Link");
 
