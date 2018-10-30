@@ -16,8 +16,10 @@
   "dependencies": {},
   "devDependencies": {
     "@types/dat.gui": "^0.7.1",
+    "@types/hammerjs": "^2.0.36",
     "@types/webgl2": "0.0.4",
     "dat.gui": "^0.7.2",
+    "hammerjs": "^2.0.8",
     "raw-loader": "^0.5.1",
     "ts-loader": "^4.4.2",
     "tslint": "^5.10.0",

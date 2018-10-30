@@ -1,3 +1,5 @@
+import "hammerjs";
+
 import fShaderSource from "./shaders/fShader.glsl";
 import vShaderSource from "./shaders/vShader.glsl";
 
@@ -17,8 +19,6 @@ export default class JuliaRenderer {
   private loc: number[];
   private zoomCenter: number[];
   private zoomSize: number;
-  private mouseLoc: number[];
-  private mouseDown: boolean;
   private capture: ((dataURI: string) => any) | null;
   private redraw: boolean;
 
@@ -43,8 +43,6 @@ export default class JuliaRenderer {
     this.loc = params.loc || [-0.76, 0.22];
     this.zoomCenter = params.zoomCenter || [0, 0];
     this.zoomSize = params.zoomSize || 4.0;
-    this.mouseLoc = [0, 0];
-    this.mouseDown = false;
     this.capture = null;
     this.redraw = true;
     this.addEventListeners();
@@ -105,22 +103,53 @@ export default class JuliaRenderer {
   }
 
   private addEventListeners() {
-    this.canvas.addEventListener("mousedown", (e) => {
-      this.mouseDown = true;
-      this.loc = this.mouseLoc = this.coordsToPoint(e.clientX, e.clientY);
-      this.update();
-    });
+    const hammer = new Hammer(this.canvas);
+    hammer.get("pan").set({ direction: Hammer.DIRECTION_ALL, threshold: 40 });
+    hammer.get("pinch").set({ enable: true });
 
-    this.canvas.addEventListener("mousemove", (e) => {
-      this.mouseLoc = this.coordsToPoint(e.clientX, e.clientY);
-      if (this.mouseDown) {
-        this.loc = this.mouseLoc;
+    let lastScale: number;
+    let lastCenter: HammerPoint;
+    let lastPinched = 0;
+
+    hammer.on("tap pan", (e) => {
+      if (Date.now() - lastPinched > 500) {
+        this.loc = this.coordsToPoint(e.center.x, e.center.y);
         this.update();
       }
     });
 
-    this.canvas.addEventListener("mouseup", (e) => {
-      this.mouseDown = false;
+    hammer.on("pinchstart", (e) => {
+      lastScale = 1.0;
+      lastCenter = e.center;
+    });
+
+    hammer.on("pinch", (e) => {
+      const dx = e.center.x - lastCenter.x;
+      const dy = e.center.y - lastCenter.y;
+      const dpos = this.coordsToPoint(dx, dy);
+      const dpos0 = this.coordsToPoint(0, 0);
+      this.zoomCenter[0] -= dpos[0] - dpos0[0];
+      this.zoomCenter[1] -= dpos[1] - dpos0[1];
+      lastCenter = e.center;
+
+      let scale = 1 / e.scale;
+      scale = Math.max(scale / lastScale, MIN_ZOOM_SIZE / this.zoomSize);
+      lastScale = 1 / e.scale;
+      if (scale !== 1) {
+        const [ cx, cy ] = this.coordsToPoint(e.center.x, e.center.y);
+        this.zoomSize *= scale;
+        this.zoomCenter[0] = scale * (this.zoomCenter[0] - cx) + cx;
+        this.zoomCenter[1] = scale * (this.zoomCenter[1] - cy) + cy;
+        this.update();
+      }
+
+      lastPinched = Date.now();
+    });
+
+    let mouseLoc = this.coordsToPoint(this.canvas.width / 2, this.canvas.height / 2);
+
+    this.canvas.addEventListener("mousemove", (e) => {
+      mouseLoc = this.coordsToPoint(e.clientX, e.clientY);
     });
 
     this.canvas.addEventListener("wheel", (e) => {
@@ -129,8 +158,8 @@ export default class JuliaRenderer {
       scale = Math.max(scale, MIN_ZOOM_SIZE / this.zoomSize);
       if (scale !== 1) {
         this.zoomSize *= scale;
-        this.zoomCenter[0] = scale * (this.zoomCenter[0] - this.mouseLoc[0]) + this.mouseLoc[0];
-        this.zoomCenter[1] = scale * (this.zoomCenter[1] - this.mouseLoc[1]) + this.mouseLoc[1];
+        this.zoomCenter[0] = scale * (this.zoomCenter[0] - mouseLoc[0]) + mouseLoc[0];
+        this.zoomCenter[1] = scale * (this.zoomCenter[1] - mouseLoc[1]) + mouseLoc[1];
         this.update();
       }
     });
@@ -138,8 +167,8 @@ export default class JuliaRenderer {
 
   private setup() {
     // Compile and link shaders
-    const vShader = this.gl.createShader(this.gl.VERTEX_SHADER);
-    const fShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
+    const vShader = this.gl.createShader(this.gl.VERTEX_SHADER) as WebGLShader;
+    const fShader = this.gl.createShader(this.gl.FRAGMENT_SHADER) as WebGLShader;
     this.gl.shaderSource(vShader, vShaderSource);
     this.gl.shaderSource(fShader, fShaderSource);
     this.gl.compileShader(vShader);
