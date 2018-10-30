@@ -21,7 +21,8 @@ module.exports = (argv) => ({
     extensions: ['.tsx', '.ts', '.js']
   },
   serve: {
-    content: path.resolve(__dirname, 'docs')
+    content: path.resolve(__dirname, 'docs'),
+    host: '0.0.0.0'
   },
   output: {
     filename: 'bundle.js',
