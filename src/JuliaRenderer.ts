@@ -112,7 +112,7 @@ export default class JuliaRenderer {
     let lastPinched = 0;
 
     hammer.on("tap pan", (e) => {
-      if (Date.now() - lastPinched > 500) {
+      if (this.zoomSize > 1 && Date.now() - lastPinched > 500) {
         this.loc = this.coordsToPoint(e.center.x, e.center.y);
         this.update();
       }
